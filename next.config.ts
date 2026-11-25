@@ -28,6 +28,14 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "assets-dev.abdullahalmaksud.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.abdullahalmaksud.com",
+      },
+      {
+        protocol: "https",
         hostname: "*.public.blob.vercel-storage.com",
       },
       {
