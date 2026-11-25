@@ -10,14 +10,14 @@ import type { BookPublication } from "@/types/book";
 export function useBookBundleQuery(
   options?: Omit<
     UseQueryOptions<
-      ApiResponse<BookBundleData>,
+      ApiResponse<BookBundleData | null>,
       Error,
-      ApiResponse<BookBundleData>,
+      ApiResponse<BookBundleData | null>,
       ReturnType<typeof bookKeys.bundle>
     >,
     "queryKey" | "queryFn"
   >
-): UseQueryResult<ApiResponse<BookBundleData>, Error> {
+): UseQueryResult<ApiResponse<BookBundleData | null>, Error> {
   return useQuery({
     queryKey: bookKeys.bundle(),
     queryFn: () => getBookBundle(),

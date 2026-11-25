@@ -6,48 +6,38 @@ import {
   fetchBlogBySlug,
   fetchBlogCategories,
   BlogQueryParams,
-  mergeBlogsWithStatic,
+  mapApiBlogToBlogPost,
   ApiBlog,
 } from "@/lib/api/blogs";
 import { BlogPost } from "@/types/blog";
-import { BLOG_POSTS } from "@/data/blog-data";
 
 /**
  * Hook to fetch paginated/filtered blogs using TanStack Query.
- * Automatically merges with static monograph fallback if backend has no records yet.
+ * Throws on network/server failure so callers can render the Error Page.
  */
 export function useBlogs(params: BlogQueryParams = {}) {
   return useQuery({
     queryKey: ["blogs", params],
     queryFn: async () => {
-      try {
-        const response = await fetchBlogs(params);
-        return response.data || [];
-      } catch (err) {
-        console.warn("[useBlogs] Fallback to local catalog due to:", err);
-        return [] as ApiBlog[];
-      }
+      const response = await fetchBlogs(params);
+      return response.data || ([] as ApiBlog[]);
     },
     select: (apiBlogs): BlogPost[] => {
-      return mergeBlogsWithStatic(apiBlogs);
+      return apiBlogs.map(mapApiBlogToBlogPost);
     },
+    retry: 1,
   });
 }
 
 /**
  * Hook to fetch a single blog post by slug
  */
-export function useBlog(slug: string, initialFallback?: BlogPost) {
+export function useBlog(slug: string) {
   return useQuery({
     queryKey: ["blog", slug],
-    queryFn: async () => {
-      const apiBlog = await fetchBlogBySlug(slug);
-      return apiBlog;
-    },
-    placeholderData: () => {
-      if (initialFallback) return undefined;
-      return undefined;
-    },
+    queryFn: () => fetchBlogBySlug(slug),
+    enabled: Boolean(slug),
+    retry: 1,
   });
 }
 

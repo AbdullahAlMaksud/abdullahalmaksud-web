@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
-import { BLOG_POSTS } from "@/data/blog-data";
 import { BlogPostScreen } from "@/screens/BlogPostScreen";
-import { fetchBlogBySlug, mapApiBlogToBlogPost } from "@/lib/api/blogs";
+import { NetworkErrorView } from "@/components/common/NetworkErrorView";
+import { fetchBlogBySlugStrict, mapApiBlogToBlogPost } from "@/lib/api/blogs";
+
+export const dynamic = "force-dynamic";
 
 interface BlogPostPageProps {
   params: Promise<{
@@ -10,28 +12,17 @@ interface BlogPostPageProps {
   }>;
 }
 
-export const generateStaticParams = () => {
-  return BLOG_POSTS.map((post) => ({
-    slug: post.slug,
-  }));
-};
-
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  let post = BLOG_POSTS.find((p) => p.slug === slug);
+  const result = await fetchBlogBySlugStrict(slug);
 
-  if (!post) {
-    const apiBlog = await fetchBlogBySlug(slug);
-    if (apiBlog) {
-      post = mapApiBlogToBlogPost(apiBlog);
-    }
-  }
-
-  if (!post) {
+  if (result.status !== "ok") {
     return {
-      title: "Monograph Not Found — Abdullah Al Maksud",
+      title: "Abdullah Al Maksud",
     };
   }
+
+  const post = mapApiBlogToBlogPost(result.blog);
 
   return {
     title: `${post.title} — Abdullah Al Maksud`,
@@ -46,23 +37,17 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
 const Page = async ({ params }: BlogPostPageProps) => {
   const { slug } = await params;
+  const result = await fetchBlogBySlugStrict(slug);
 
-  // 1. Try fetching from live backend first
-  let post = null;
-  const apiBlog = await fetchBlogBySlug(slug);
-  if (apiBlog) {
-    post = mapApiBlogToBlogPost(apiBlog);
-  }
-
-  // 2. Fallback to static catalogue
-  if (!post) {
-    post = BLOG_POSTS.find((p) => p.slug === slug) || null;
-  }
-
-  if (!post) {
+  if (result.status === "not_found") {
     notFound();
   }
 
+  if (result.status === "error") {
+    return <NetworkErrorView />;
+  }
+
+  const post = mapApiBlogToBlogPost(result.blog);
   return <BlogPostScreen post={post} />;
 };
 

@@ -4,10 +4,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, CheckCircle2, AlertCircle, Loader2, Sparkles } from "lucide-react";
+import { Send, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { sendInquiry } from "@/lib/api/contact";
+import { useSite } from "@/contexts/SiteContext";
 
 export const ContactForm = () => {
+  const { site } = useSite();
+  const c = site?.contact;
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
@@ -17,17 +21,12 @@ export const ContactForm = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [isSimulated, setIsSimulated] = useState(false);
 
-  const quickSubjects = [
-    "Literary & Technical Translation",
-    "Product & Design Systems",
-    "Web & Mobile App Solutions",
-    "Strategic Architecture Advisory",
-  ];
+  const quickSubjects = c?.quickSubjects || [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !subject || !message) {
-      setErrorMessage("Please complete all required fields (Name, Email, Subject, Message).");
+      setErrorMessage("Please complete all required fields.");
       setStatus("error");
       return;
     }
@@ -37,7 +36,6 @@ export const ContactForm = () => {
 
     try {
       const data = await sendInquiry({ name, email, subject, message });
-
       setIsSimulated(Boolean(data.simulated));
       setStatus("success");
     } catch (err: unknown) {
@@ -60,26 +58,25 @@ export const ContactForm = () => {
     return (
       <div className="space-y-4 py-12 text-center">
         <div className="flex justify-center">
-          <CheckCircle2 className="h-14 w-14 text-black" />
+          <CheckCircle2 className="h-12 w-12 text-black" />
         </div>
         <div className="space-y-2">
           <h3 className="font-sans text-xl font-bold tracking-tight text-black uppercase">
-            Inquiry Dispatched Successfully!
+            {c?.successTitle || "Message Sent"}
           </h3>
           <p className="font-editorial-body mx-auto max-w-md text-base text-neutral-700">
-            Thank you, {name}. Your transmission has been received by Abdullah Al Maksud. You will
-            receive a direct reply within 24 hours.
+            {c?.successMessage || "Thank you for reaching out. Your message has been received."}
           </p>
           {isSimulated && (
-            <div className="mt-4 border border-neutral-200 bg-neutral-100 p-3 text-left font-mono text-[11px] text-neutral-500">
-              <strong>Notice:</strong> Running in simulated dispatch. To deliver live emails to your
-              inbox, configure <code>RESEND_API_KEY</code> on the backend server environment.
+            <div className="mt-4 border border-neutral-200 bg-neutral-50 p-3 text-left font-mono text-[11px] text-neutral-500">
+              Simulated dispatch mode: configure <code>RESEND_API_KEY</code> on the server for live
+              email delivery.
             </div>
           )}
         </div>
         <div className="pt-4">
           <Button onClick={handleReset} variant="default" className="font-mono text-xs uppercase">
-            SEND ANOTHER MESSAGE
+            {c?.sendAnotherButton || "Send Another Message"}
           </Button>
         </div>
       </div>
@@ -90,10 +87,10 @@ export const ContactForm = () => {
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-1">
         <h3 className="font-sans text-lg font-bold tracking-tight text-black uppercase">
-          SEND INQUIRY // DIRECT DISPATCH
+          {c?.formTitle || "Send a Message"}
         </h3>
         <p className="font-editorial-body text-xs text-neutral-600">
-          Please outline your project scope, timeline, and architectural requirements.
+          {c?.formSubtitle || "Share your project scope or inquiry details."}
         </p>
       </div>
 
@@ -104,94 +101,89 @@ export const ContactForm = () => {
         </div>
       )}
 
-      {/* Quick Topics */}
-      <div className="space-y-1.5">
-        <label className="block font-mono text-[10px] font-semibold tracking-widest text-neutral-600 uppercase">
-          SELECT SUBJECT / TOPIC:
-        </label>
-        <div className="flex flex-wrap gap-1.5">
-          {quickSubjects.map((sub) => (
-            <button
-              key={sub}
-              type="button"
-              onClick={() => setSubject(sub)}
-              className={`cursor-pointer border px-2.5 py-1 font-mono text-[11px] transition-colors ${
-                subject === sub
-                  ? "border-black bg-black text-white"
-                  : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100"
-              }`}
-            >
-              {sub}
-            </button>
-          ))}
+      {quickSubjects.length > 0 && (
+        <div className="space-y-1.5">
+          <label className="block font-mono text-[10px] font-semibold tracking-widest text-neutral-600 uppercase">
+            {c?.topicLabel || "Topic"}
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {quickSubjects.map((sub) => (
+              <button
+                key={sub}
+                type="button"
+                onClick={() => setSubject(sub)}
+                className={`cursor-pointer border px-2.5 py-1 font-mono text-[11px] transition-colors ${
+                  subject === sub
+                    ? "border-black bg-black text-white"
+                    : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-100"
+                }`}
+              >
+                {sub}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Name */}
       <div className="space-y-1">
         <label className="block font-mono text-[10px] font-semibold tracking-widest text-neutral-700 uppercase">
-          YOUR FULL NAME *
+          {c?.nameLabel || "Full Name"} *
         </label>
         <Input
           type="text"
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Enter your full name"
+          placeholder={c?.namePlaceholder || "Your name"}
           className="w-full border border-neutral-300 bg-white p-2.5 font-sans text-sm focus:border-black"
         />
       </div>
 
-      {/* Email */}
       <div className="space-y-1">
         <label className="block font-mono text-[10px] font-semibold tracking-widest text-neutral-700 uppercase">
-          YOUR EMAIL ADDRESS *
+          {c?.emailFieldLabel || "Email Address"} *
         </label>
         <Input
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="alexander@enterprise.com"
+          placeholder={c?.emailPlaceholder || "you@example.com"}
           className="w-full border border-neutral-300 bg-white p-2.5 font-sans text-sm focus:border-black"
         />
       </div>
 
-      {/* Subject */}
       <div className="space-y-1">
         <label className="block font-mono text-[10px] font-semibold tracking-widest text-neutral-700 uppercase">
-          SUBJECT *
+          {c?.subjectLabel || "Subject"} *
         </label>
         <Input
           type="text"
           required
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
-          placeholder="e.g. Next.js Enterprise Storefront Architecture"
+          placeholder={c?.subjectPlaceholder || "Subject"}
           className="w-full border border-neutral-300 bg-white p-2.5 font-sans text-sm focus:border-black"
         />
       </div>
 
-      {/* Message */}
       <div className="space-y-1">
         <label className="block font-mono text-[10px] font-semibold tracking-widest text-neutral-700 uppercase">
-          MESSAGE / PROJECT BRIEF *
+          {c?.messageLabel || "Message"} *
         </label>
         <Textarea
           required
           rows={5}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Describe the project objectives, technical scope, timeline, and deliverables..."
+          placeholder={c?.messagePlaceholder || "Write your message..."}
           className="font-editorial-body w-full resize-y border border-neutral-300 bg-white p-2.5 text-sm focus:border-black"
         />
       </div>
 
-      {/* Submit Button */}
       <div className="flex flex-col items-center justify-between gap-3 pt-2 sm:flex-row">
-        <div className="flex items-center gap-1 font-mono text-[10px] text-neutral-500">
-          <Sparkles className="h-3 w-3" />
-          <span>Dispatched via Resend API</span>
+        <div className="font-mono text-[10px] text-neutral-500">
+          {c?.poweredBy || "Delivered via Resend"}
         </div>
 
         <Button
@@ -202,12 +194,12 @@ export const ContactForm = () => {
           {status === "loading" ? (
             <>
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              DISPATCHING INQUIRY...
+              <span>{c?.sendingButton || "Sending..."}</span>
             </>
           ) : (
             <>
               <Send className="h-3.5 w-3.5" />
-              TRANSMIT INQUIRY
+              <span>{c?.submitButton || "Send Message"}</span>
             </>
           )}
         </Button>

@@ -2,69 +2,126 @@
 
 import React from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import Image from "next/image";
+import axios from "axios";
 import { TopHeader } from "@/components/layout/TopHeader";
 import { Footer } from "@/components/layout/Footer";
-import { Book3DCard } from "@/components/interactive/Book3DCard";
-import { getBookBySlug } from "@/data/book-data";
-import { PORTFOLIO_DATA } from "@/data/portfolio-data";
+import { NetworkErrorView } from "@/components/common/NetworkErrorView";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpRight, BookOpen, Quote } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, BookOpen } from "lucide-react";
+import { useSite } from "@/contexts/SiteContext";
+import { useBookBySlugQuery } from "@/services/book";
 
 interface BookDetailScreenProps {
   slug: string;
 }
 
 export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({ slug }) => {
-  const book = getBookBySlug(slug);
+  const { site, isLoading: isSiteLoading, isError: isSiteError, retry: retrySite } = useSite();
+  const {
+    data: bookRes,
+    isLoading: isBookLoading,
+    isError: isBookError,
+    error: bookError,
+    refetch: refetchBook,
+  } = useBookBySlugQuery(slug, {
+    retry: (failureCount, err) => {
+      if (axios.isAxiosError(err) && err.response?.status === 404) return false;
+      return failureCount < 1;
+    },
+  });
 
-  if (!book) {
-    notFound();
+  const isNotFound = axios.isAxiosError(bookError) && bookError.response?.status === 404;
+
+  if (isSiteError || (isBookError && !isNotFound)) {
+    return (
+      <NetworkErrorView
+        onRetry={() => {
+          retrySite();
+          void refetchBook();
+        }}
+      />
+    );
   }
 
-  return (
-    <div className="min-h-screen bg-[#fafafa] text-black">
-      <TopHeader />
+  if (isSiteLoading || isBookLoading || !site) {
+    return <PageSkeleton />;
+  }
 
-      <main className="w-full">
-        {/* Editorial Sub-Header Breadcrumb Bar */}
-        <div className="border-b border-black/10 bg-white">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-8">
+  const book = bookRes?.data;
+
+  if (isNotFound || !book) {
+    return (
+      <div className="flex min-h-screen flex-col justify-between bg-white text-black">
+        <TopHeader />
+        <main className="mx-auto my-auto max-w-xl space-y-5 px-5 py-20">
+          <h1 className="font-sans text-3xl font-bold text-black">{site.ui.bookNotFoundTitle}</h1>
+          <p className="font-editorial-body text-neutral-600">{site.ui.bookNotFoundSubtitle}</p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 border border-black bg-black px-4 py-2 font-mono text-xs text-white uppercase"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>{site.nav.backToHome}</span>
+          </Link>
+        </main>
+        <Footer
+          copyright={site.footer.copyright}
+          rights={site.footer.rights}
+          socials={site.footer.socials}
+        />
+      </div>
+    );
+  }
+
+  const purchaseLinks =
+    book.purchaseLinks && book.purchaseLinks.length > 0 ? book.purchaseLinks : [];
+
+  return (
+    <div className="flex min-h-screen flex-col justify-between bg-white text-black">
+      <div>
+        <TopHeader />
+
+        <div className="border-b border-neutral-200">
+          <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
             <Link
               href="/#books"
-              className="group flex items-center space-x-2 font-mono text-xs text-neutral-600 transition-colors hover:text-black"
+              className="inline-flex items-center gap-2 font-mono text-xs font-medium tracking-wider text-neutral-600 uppercase transition-colors hover:text-black"
             >
-              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-1" />
-              <span>RETURN TO OVERVIEW</span>
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>{site.nav.backToHome}</span>
             </Link>
-            <div className="font-mono text-[11px] tracking-widest text-neutral-500 uppercase">
-              PUBLICATION // MONOGRAPH SPEC
-            </div>
+            <span className="font-mono text-[11px] tracking-widest text-neutral-400 uppercase">
+              {site.ui.bookSpecLabel}
+            </span>
           </div>
         </div>
 
-        {/* Hero Section: 3D Book Showcase & Metadata */}
-        <section className="border-b border-black/10 bg-white py-10 sm:py-16">
-          <div className="mx-auto max-w-7xl px-4 sm:px-8">
-            <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
-              {/* Left Column: 3D Interactive Model & Purchase Options */}
+        <main>
+          <section className="border-b border-neutral-200 py-12 sm:py-16">
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-10 px-5 sm:px-8 lg:grid-cols-12 lg:gap-14">
+              {/* Left Column: Clean Minimal Cover & Specs */}
               <div className="space-y-6 lg:col-span-5">
-                <div className="overflow-hidden border border-neutral-800 shadow-lg">
-                  <Book3DCard
-                    imageUrl={book.coverImage}
-                    imageAlt={book.title}
-                    spineTitle={book.title}
-                    authorName={book.author}
-                    publisherName={book.publisher || "ঐতিহ্য প্রকাশনী"}
-                    isbn={book.isbn || "978-984-776-120-4"}
-                    className="h-80 sm:h-96 lg:h-[420px]"
-                  />
-                </div>
+                {(book.coverImage || book.slug === "emon-jodi-hoto") && (
+                  <div className="relative aspect-[3/4] w-full overflow-hidden border border-neutral-200 bg-neutral-50">
+                    <Image
+                      src={
+                        book.coverImage && book.coverImage !== "/images/books/emon-jodi-hoto.webp"
+                          ? book.coverImage
+                          : "/images/image.png"
+                      }
+                      alt={book.title}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 400px"
+                      className="object-cover"
+                    />
+                  </div>
+                )}
 
-                {/* Purchase / Store Buttons */}
-                {book.purchaseLinks && book.purchaseLinks.length > 0 && (
+                {purchaseLinks.length > 0 && (
                   <div className="space-y-2.5">
-                    {book.purchaseLinks.map((link) => (
+                    {purchaseLinks.map((link) => (
                       <a
                         key={link.url}
                         href={link.url}
@@ -73,7 +130,7 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({ slug }) => {
                         className="block w-full"
                       >
                         <Button
-                          className={`w-full justify-between py-6 font-mono text-xs font-semibold tracking-wider uppercase ${
+                          className={`w-full justify-between py-5 font-mono text-xs font-semibold tracking-wider uppercase ${
                             link.isPrimary
                               ? "bg-black text-white hover:bg-neutral-800"
                               : "border border-black bg-white text-black hover:bg-neutral-100"
@@ -87,32 +144,39 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({ slug }) => {
                   </div>
                 )}
 
-                {/* Technical Publication Metadata Grid */}
-                <div className="border border-black/10 bg-neutral-50 p-4 font-mono text-xs">
-                  <div className="mb-3 border-b border-black/10 pb-2 text-[10px] font-bold tracking-widest text-neutral-500 uppercase">
-                    SPECIFICATION // METRICS
+                <div className="border border-neutral-200 p-4 font-mono text-xs">
+                  <div className="mb-3 border-b border-neutral-200 pb-2 text-[10px] font-bold tracking-widest text-neutral-500 uppercase">
+                    {site.ui.bookSpecLabel}
                   </div>
-                  <dl className="grid grid-cols-2 gap-y-2.5 text-[11px]">
-                    <dt className="text-neutral-500">AUTHOR:</dt>
+                  <dl className="grid grid-cols-2 gap-y-2 text-[11px]">
+                    <dt className="text-neutral-500">{site.ui.bookAuthorLabel}:</dt>
                     <dd className="font-medium text-black">{book.author}</dd>
 
-                    <dt className="text-neutral-500">PUBLISHER:</dt>
-                    <dd className="font-medium text-black">{book.publisher || "N/A"}</dd>
+                    <dt className="text-neutral-500">{site.ui.bookPublisherLabel}:</dt>
+                    <dd className="font-medium text-black">{book.publisher || "—"}</dd>
 
-                    <dt className="text-neutral-500">YEAR / EDITION:</dt>
+                    <dt className="text-neutral-500">{site.ui.bookYearLabel}:</dt>
                     <dd className="font-medium text-black">
-                      {book.publicationYear} ({book.edition})
+                      {book.publicationYear || "—"} {book.edition ? `(${book.edition})` : ""}
                     </dd>
 
-                    <dt className="text-neutral-500">LANGUAGE:</dt>
-                    <dd className="font-medium text-black">{book.language}</dd>
+                    {book.language && (
+                      <>
+                        <dt className="text-neutral-500">{site.ui.bookLanguageLabel}:</dt>
+                        <dd className="font-medium text-black">{book.language}</dd>
+                      </>
+                    )}
 
-                    <dt className="text-neutral-500">PAGES:</dt>
-                    <dd className="font-medium text-black">{book.pages}</dd>
+                    {book.pages ? (
+                      <>
+                        <dt className="text-neutral-500">{site.ui.bookPagesLabel}:</dt>
+                        <dd className="font-medium text-black">{book.pages}</dd>
+                      </>
+                    ) : null}
 
                     {book.isbn && (
                       <>
-                        <dt className="text-neutral-500">ISBN:</dt>
+                        <dt className="text-neutral-500">{site.ui.bookIsbnLabel}:</dt>
                         <dd className="font-medium text-black">{book.isbn}</dd>
                       </>
                     )}
@@ -120,147 +184,118 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({ slug }) => {
                 </div>
               </div>
 
-              {/* Right Column: Title, Synopsis, & Themes */}
-              <div className="flex flex-col justify-between space-y-8 lg:col-span-7">
-                <div className="space-y-6">
-                  {/* Category Pill */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="border border-black bg-black px-2.5 py-1 font-mono text-[10px] font-semibold tracking-widest text-white uppercase">
+              {/* Right Column: Title, Synopsis & Themes */}
+              <div className="space-y-8 lg:col-span-7">
+                <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] tracking-widest uppercase">
+                  {book.category && (
+                    <span className="border border-black bg-black px-2.5 py-1 text-white">
                       {book.category}
                     </span>
-                    <span className="border border-neutral-300 bg-neutral-100 px-2.5 py-1 font-mono text-[10px] font-medium tracking-widest text-neutral-700 uppercase">
+                  )}
+                  {book.genre && (
+                    <span className="border border-neutral-300 px-2.5 py-1 text-neutral-700">
                       {book.genre}
                     </span>
-                  </div>
-
-                  {/* Title & Subtitle */}
-                  <div className="space-y-3">
-                    <h1 className="font-editorial-body text-4xl leading-tight font-extrabold tracking-tight text-black sm:text-5xl lg:text-6xl">
-                      {book.title}
-                    </h1>
-                    {book.subtitle && (
-                      <p className="font-editorial-body text-lg text-neutral-600 sm:text-xl">
-                        {book.subtitle}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Synopsis */}
-                  <div className="space-y-3">
-                    <h2 className="font-mono text-xs font-bold tracking-[0.2em] text-neutral-500 uppercase">
-                      // গ্রন্থ সংক্ষেপ (SYNOPSIS)
-                    </h2>
-                    <div className="font-editorial-body text-base leading-relaxed whitespace-pre-line text-neutral-800 sm:text-lg">
-                      {book.synopsis.trim()}
-                    </div>
-                  </div>
-
-                  {/* Key Themes List */}
-                  {book.themes && book.themes.length > 0 && (
-                    <div className="space-y-3 border-t border-black/10 pt-6">
-                      <h2 className="font-mono text-xs font-bold tracking-[0.2em] text-neutral-500 uppercase">
-                        // মূল থিম ও বিষয়বস্তু (THEMATIC FOUNDATIONS)
-                      </h2>
-                      <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                        {book.themes.map((theme, index) => (
-                          <li
-                            key={index}
-                            className="font-editorial-body flex items-start space-x-2 border border-black/5 bg-neutral-50 p-2.5 text-sm text-neutral-800"
-                          >
-                            <span className="font-mono text-xs font-bold text-neutral-400">
-                              0{index + 1}.
-                            </span>
-                            <span>{theme}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
                   )}
                 </div>
+
+                <div className="space-y-2">
+                  <h1 className="font-editorial-body text-4xl leading-tight font-extrabold tracking-tight text-black sm:text-5xl">
+                    {book.title}
+                  </h1>
+                  {book.subtitle && (
+                    <p className="font-editorial-body text-lg text-neutral-600 sm:text-xl">
+                      {book.subtitle}
+                    </p>
+                  )}
+                </div>
+
+                {book.synopsis && (
+                  <div className="space-y-3 border-t border-neutral-200 pt-6">
+                    <h2 className="font-mono text-xs font-bold tracking-widest text-neutral-500 uppercase">
+                      {site.ui.bookSynopsisLabel}
+                    </h2>
+                    <div className="font-editorial-body text-base leading-relaxed whitespace-pre-line text-neutral-800 sm:text-lg">
+                      {typeof book.synopsis === "string" ? book.synopsis.trim() : ""}
+                    </div>
+                  </div>
+                )}
+
+                {book.themes && book.themes.length > 0 && (
+                  <div className="space-y-3 border-t border-neutral-200 pt-6">
+                    <h2 className="font-mono text-xs font-bold tracking-widest text-neutral-500 uppercase">
+                      {site.ui.bookThemesLabel}
+                    </h2>
+                    <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                      {book.themes.map((theme, index) => (
+                        <li
+                          key={index}
+                          className="font-editorial-body flex items-start gap-2 border border-neutral-200 p-3 text-sm text-neutral-800"
+                        >
+                          <span className="font-mono text-xs font-bold text-neutral-400">
+                            0{index + 1}.
+                          </span>
+                          <span>{theme}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Quotes & Critical Insights Section */}
-        {book.quotes && book.quotes.length > 0 && (
-          <section className="border-b border-black/10 bg-neutral-950 py-12 text-white sm:py-16">
-            <div className="mx-auto max-w-7xl px-4 sm:px-8">
-              <div className="mb-8 space-y-2">
-                <span className="font-mono text-[11px] font-medium tracking-[0.25em] text-neutral-400 uppercase">
-                  EXCERPTS & DIALOGUE
-                </span>
-                <h2 className="font-editorial-body text-2xl font-bold tracking-tight text-white uppercase sm:text-3xl">
-                  বইয়ের বিশেষ পংক্তি ও ভাবনা
+          {book.quotes && book.quotes.length > 0 && (
+            <section className="border-b border-neutral-200 py-12 sm:py-16">
+              <div className="mx-auto max-w-5xl space-y-6 px-5 sm:px-8">
+                <h2 className="font-mono text-xs font-bold tracking-widest text-neutral-500 uppercase">
+                  {site.ui.bookQuotesLabel}
                 </h2>
-              </div>
-
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                {book.quotes.map((quote, idx) => (
-                  <div
-                    key={idx}
-                    className="flex flex-col justify-between border border-white/10 bg-neutral-900/80 p-6"
-                  >
-                    <Quote className="mb-4 h-6 w-6 text-neutral-500" />
-                    <p className="font-editorial-body text-base leading-relaxed text-neutral-200 italic sm:text-lg">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                  {book.quotes.map((quote, idx) => (
+                    <blockquote
+                      key={idx}
+                      className="font-editorial-body border-l-2 border-black pl-4 text-base leading-relaxed text-neutral-800 italic"
+                    >
                       &ldquo;{quote}&rdquo;
-                    </p>
-                    <div className="mt-4 border-t border-white/10 pt-3 font-mono text-[10px] tracking-widest text-neutral-400 uppercase">
-                      — {book.title}
-                    </div>
-                  </div>
-                ))}
+                    </blockquote>
+                  ))}
+                </div>
               </div>
-            </div>
-          </section>
-        )}
+            </section>
+          )}
 
-        {/* Narrative Chapters Section */}
-        {book.chapters && book.chapters.length > 0 && (
-          <section className="border-b border-black/10 bg-white py-12 sm:py-16">
-            <div className="mx-auto max-w-7xl px-4 sm:px-8">
-              <div className="mb-8 space-y-2">
-                <span className="font-mono text-[11px] font-medium tracking-[0.25em] text-neutral-500 uppercase">
-                  NARRATIVE STRUCTURE
-                </span>
-                <h2 className="font-editorial-body text-2xl font-bold tracking-tight text-black uppercase sm:text-3xl">
-                  গ্রন্থের অধ্যায় ও বিষয়সূচি
+          {book.chapters && book.chapters.length > 0 && (
+            <section className="border-b border-neutral-200 py-12 sm:py-16">
+              <div className="mx-auto max-w-5xl space-y-6 px-5 sm:px-8">
+                <h2 className="font-mono text-xs font-bold tracking-widest text-neutral-500 uppercase">
+                  {site.ui.bookChaptersLabel}
                 </h2>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {book.chapters.map((ch) => (
-                  <div
-                    key={ch.number}
-                    className="border border-black/10 bg-neutral-50/70 p-5 transition-colors hover:bg-white"
-                  >
-                    <div className="mb-2 flex items-center justify-between font-mono text-xs">
-                      <span className="font-bold text-neutral-400">অধ্যায় {ch.number}</span>
-                      <BookOpen className="h-3.5 w-3.5 text-neutral-400" />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {book.chapters.map((ch) => (
+                    <div key={ch.number} className="border border-neutral-200 p-5">
+                      <div className="mb-2 flex items-center justify-between font-mono text-xs text-neutral-400">
+                        <span>{ch.number}</span>
+                        <BookOpen className="h-3.5 w-3.5" />
+                      </div>
+                      <h3 className="font-editorial-body mb-1.5 text-lg font-bold text-black">
+                        {ch.title}
+                      </h3>
+                      <p className="font-editorial-body text-sm leading-relaxed text-neutral-700">
+                        {ch.description}
+                      </p>
                     </div>
-                    <h3 className="font-editorial-body mb-2 text-lg font-bold text-black sm:text-xl">
-                      {ch.title}
-                    </h3>
-                    <p className="font-editorial-body text-sm leading-relaxed text-neutral-700">
-                      {ch.description}
-                    </p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          </section>
-        )}
+            </section>
+          )}
 
-        {/* Author's Note Section */}
-        {book.authorNote && (
-          <section className="border-b border-black/10 bg-neutral-100 py-12 sm:py-16">
-            <div className="mx-auto max-w-4xl px-4 sm:px-8">
-              <div className="space-y-4 border-l-2 border-black pl-6 sm:pl-8">
-                <span className="font-mono text-[11px] font-semibold tracking-[0.25em] text-neutral-500 uppercase">
-                  PREFACE // AUTHOR&apos;S NOTE
-                </span>
-                <h2 className="font-editorial-body text-2xl font-bold tracking-tight text-black sm:text-3xl">
-                  লেখকের কথা
+          {book.authorNote && (
+            <section className="py-12 sm:py-16">
+              <div className="mx-auto max-w-3xl space-y-4 border-l-2 border-black px-5 sm:px-8">
+                <h2 className="font-mono text-xs font-bold tracking-widest text-neutral-500 uppercase">
+                  {site.ui.bookAuthorNoteLabel}
                 </h2>
                 <div className="font-editorial-body text-base leading-relaxed whitespace-pre-line text-neutral-800 italic sm:text-lg">
                   {book.authorNote.trim()}
@@ -269,15 +304,15 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({ slug }) => {
                   — {book.author}
                 </div>
               </div>
-            </div>
-          </section>
-        )}
-      </main>
+            </section>
+          )}
+        </main>
+      </div>
 
       <Footer
-        copyright={PORTFOLIO_DATA.footer.copyright}
-        rights={PORTFOLIO_DATA.footer.rights}
-        socials={PORTFOLIO_DATA.footer.socials}
+        copyright={site.footer.copyright}
+        rights={site.footer.rights}
+        socials={site.footer.socials}
       />
     </div>
   );

@@ -1,81 +1,104 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { PORTFOLIO_DATA } from "@/data/portfolio-data";
 import { TopHeader } from "@/components/layout/TopHeader";
 import { HeroIdentity } from "@/components/hero/HeroIdentity";
-import { HeroBanner } from "@/components/hero/HeroBanner";
 import { EnterpriseArchitectureSection } from "@/components/sections/EnterpriseArchitectureSection";
-import { LiteratureEssaysSection } from "@/components/sections/LiteratureEssaysSection";
+import {
+  LiteratureEssaysSection,
+  type BookCoverItem,
+} from "@/components/sections/LiteratureEssaysSection";
 import { DesignSystemsSection } from "@/components/sections/DesignSystemsSection";
-import { StrategicAdvisorySection } from "@/components/sections/StrategicAdvisorySection";
+import {
+  AboutFlowBlock,
+  StrategicAdvisorySection,
+} from "@/components/sections/StrategicAdvisorySection";
 import { Footer } from "@/components/layout/Footer";
 import { ArticleModal, ModalArticleData } from "@/components/interactive/ArticleModal";
-import { PhysicsSimulatorModal } from "@/components/interactive/PhysicsSimulatorModal";
 import { ContactEmailModal } from "@/components/interactive/ContactEmailModal";
+import { NetworkErrorView } from "@/components/common/NetworkErrorView";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
+import { useSite } from "@/contexts/SiteContext";
 import { useCaseStudiesQuery } from "@/services/case-study";
 import { useBlogsQuery } from "@/services/blog";
 import { useProjectsQuery, type Project } from "@/services/project";
+import { useBookBundleQuery, useBooksQuery } from "@/services/book";
 import type { EnterpriseProject, EssayPublication, DesignSystemModule } from "@/types/portfolio";
 
 export const HomeScreen = () => {
+  const { site, isLoading: isSiteLoading, isError: isSiteError, retry: retrySite } = useSite();
+
   const [selectedArticle, setSelectedArticle] = useState<ModalArticleData | null>(null);
   const [isArticleModalOpen, setIsArticleModalOpen] = useState<boolean>(false);
-  const [isPhysicsModalOpen, setIsPhysicsModalOpen] = useState<boolean>(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState<boolean>(false);
 
-  // 1. Fetch Case Studies for Section 1 (2 items)
-  const { data: caseStudiesRes } = useCaseStudiesQuery({
+  const {
+    data: caseStudiesRes,
+    isLoading: isCaseStudiesLoading,
+    isError: isCaseStudiesError,
+    refetch: refetchCaseStudies,
+  } = useCaseStudiesQuery({
     published: true,
-    limit: 2,
+    limit: 3,
     includeContent: true,
   });
 
-  // 2. Fetch Blog Posts for Section 2 (4 featured blogs)
-  const { data: blogsRes } = useBlogsQuery({
+  const {
+    data: blogsRes,
+    isLoading: isBlogsLoading,
+    isError: isBlogsError,
+    refetch: refetchBlogs,
+  } = useBlogsQuery({
     published: true,
     featured: true,
     limit: 4,
     includeContent: true,
   });
 
-  // 3. Fetch Projects for Section 3 (3 featured projects)
-  const { data: projectsRes } = useProjectsQuery({
+  const {
+    data: projectsRes,
+    isLoading: isProjectsLoading,
+    isError: isProjectsError,
+    refetch: refetchProjects,
+  } = useProjectsQuery({
     featured: true,
-    limit: 5,
+    limit: 3,
   });
 
-  // Map Case Studies to Section 1 (Exactly 2 items)
+  const {
+    data: bookBundleRes,
+    isLoading: isBookBundleLoading,
+    isError: isBookBundleError,
+    refetch: refetchBookBundle,
+  } = useBookBundleQuery();
+
+  const {
+    data: booksRes,
+    isLoading: isBooksLoading,
+    isError: isBooksError,
+    refetch: refetchBooks,
+  } = useBooksQuery();
+
   const dynamicCaseStudies = useMemo<EnterpriseProject[]>(() => {
     const apiList = caseStudiesRes?.data;
-    if (!apiList || apiList.length === 0) {
-      return PORTFOLIO_DATA.enterpriseArchitecture.projects.slice(0, 2);
-    }
-    const mapped: EnterpriseProject[] = apiList.map((cs, idx) => ({
+    if (!apiList || apiList.length === 0) return [];
+    return apiList.map((cs, idx) => ({
       id: cs.slug || cs.id || `case-study-${idx}`,
       slug: cs.slug,
       tag: `0${idx + 1} / ${cs.category?.toUpperCase() || "CASE STUDY"}`,
-      title: cs.title.toUpperCase(),
+      title: cs.title,
       description: cs.excerpt || cs.challenge || "",
       techStack: cs.stack || [],
       metrics: cs.results?.map((r) => `${r.metric}: ${r.value}`) || [],
       fullContent: cs.content || cs.solution || "",
       content: cs.content,
     }));
-    const existingIds = new Set(mapped.map((p) => p.id));
-    const remaining = PORTFOLIO_DATA.enterpriseArchitecture.projects.filter(
-      (p) => !existingIds.has(p.id)
-    );
-    return [...mapped, ...remaining].slice(0, 2);
   }, [caseStudiesRes]);
 
-  // Map Blog Posts to Section 2 (Exactly 4 featured blogs)
   const dynamicBlogs = useMemo<EssayPublication[]>(() => {
     const apiList = blogsRes?.data;
-    if (!apiList || apiList.length === 0) {
-      return PORTFOLIO_DATA.literatureEssays.items.slice(0, 4);
-    }
-    const mapped: EssayPublication[] = apiList.map((blog, idx) => ({
+    if (!apiList || apiList.length === 0) return [];
+    return apiList.map((blog, idx) => ({
       id: blog.slug || blog.id || `blog-${idx}`,
       slug: blog.slug,
       tag: (blog.type || blog.category || "ESSAY").toUpperCase(),
@@ -83,59 +106,130 @@ export const HomeScreen = () => {
       description: blog.excerpt || "",
       fullContent: blog.content || "",
       content: blog.content,
-      date: blog.date || "2026",
-      readTime: blog.readTime || "5 min read",
+      date: blog.date || (blog as unknown as { publishedAt?: string }).publishedAt || "",
+      readTime: blog.readTime || (blog as unknown as { readingTime?: string }).readingTime || "",
       isFullWidth: idx >= 2,
     }));
-    const existingIds = new Set(mapped.map((b) => b.id));
-    const remaining = PORTFOLIO_DATA.literatureEssays.items.filter((b) => !existingIds.has(b.id));
-    return [...mapped, ...remaining].slice(0, 4);
   }, [blogsRes]);
 
-  // Map Projects to Section 3 (Exactly 3 featured projects)
   const dynamicProjects = useMemo<DesignSystemModule[]>(() => {
     const rawList = projectsRes?.data;
     const apiList = Array.isArray(rawList)
       ? rawList
-      : Array.isArray((rawList as any)?.items)
-        ? (rawList as any).items
+      : Array.isArray((rawList as unknown as { items?: Project[] })?.items)
+        ? (rawList as unknown as { items: Project[] }).items
         : [];
 
-    if (!apiList || apiList.length === 0) {
-      return PORTFOLIO_DATA.designSystems.modules.slice(0, 3);
+    if (!apiList || apiList.length === 0) return [];
+
+    return (apiList as Project[]).map((proj: Project, idx: number) => ({
+      id: proj.slug || proj.id || `project-${idx}`,
+      tag: proj.category?.toUpperCase() || (proj.status ? proj.status.toUpperCase() : "PROJECT"),
+      title: proj.title,
+      description: proj.description || proj.longDescription || "",
+      type: "article",
+      isInteractive: false,
+      details: {
+        overview:
+          typeof proj.fullContent === "string"
+            ? proj.fullContent
+            : proj.longDescription || proj.description || "",
+        keyPoints: [
+          ...(proj.stack || proj.tags || []),
+          ...(proj.coreFeatures?.map(
+            (f: { text: string; desc: string }) => `${f.text}: ${f.desc}`
+          ) || []),
+          proj.liveLink ? `Live: ${proj.liveLink}` : "",
+          proj.github ? `GitHub: ${proj.github}` : "",
+        ].filter(Boolean),
+      },
+    }));
+  }, [projectsRes]);
+
+  const dynamicBooks = useMemo<BookCoverItem[]>(() => {
+    const map = new Map<string, BookCoverItem>();
+
+    // Only include authored standalone books from /api/v1/books/all
+    const standaloneList = booksRes?.data || [];
+    for (const b of standaloneList) {
+      if (!b.slug && !b.title) continue;
+      const slug = b.slug || b.id || b.title;
+      const isDefaultSlug = slug === "emon-jodi-hoto";
+      const coverImage =
+        b.coverImage === "/images/books/emon-jodi-hoto.webp" && isDefaultSlug
+          ? "/images/image.png"
+          : b.coverImage;
+      const rawRecord = b as unknown as {
+        description?: string;
+        descriptionBn?: string;
+        year?: number | string;
+      };
+      map.set(slug, {
+        id: b.id || slug,
+        slug,
+        title: b.title,
+        author: b.author,
+        coverImage,
+        description: b.synopsis || rawRecord.description || rawRecord.descriptionBn || "",
+        publisher: b.publisher,
+        year: b.publicationYear || (rawRecord.year ? String(rawRecord.year) : ""),
+        category: b.category || b.genre,
+      });
     }
 
-    const mapped: DesignSystemModule[] = (apiList as Project[]).map(
-      (proj: Project, idx: number) => ({
-        id: proj.slug || proj.id || `project-${idx}`,
-        tag:
-          proj.category?.toUpperCase() ||
-          (proj.status ? `FEATURED // ${proj.status.toUpperCase()}` : "FEATURED PROJECT"),
-        title: proj.title,
-        description: proj.description || proj.longDescription || "",
-        type: "article",
-        isInteractive: false,
-        details: {
-          overview:
-            typeof proj.fullContent === "string"
-              ? proj.fullContent
-              : proj.longDescription || proj.description || "",
-          keyPoints: [
-            ...(proj.stack || proj.tags || []),
-            ...(proj.coreFeatures?.map(
-              (f: { text: string; desc: string }) => `${f.text}: ${f.desc}`
-            ) || []),
-            proj.liveLink ? `Live: ${proj.liveLink}` : "",
-            proj.github ? `GitHub: ${proj.github}` : "",
-          ].filter(Boolean),
-        },
-      })
-    );
+    // Fallback to featured book from bundle only when /books/all returned nothing
+    const bundle = bookBundleRes?.data;
+    if (bundle?.book && map.size === 0) {
+      const b = bundle.book;
+      const rawCover = b.coverImage || b.cover;
+      map.set("emon-jodi-hoto", {
+        id: "featured-book",
+        slug: "emon-jodi-hoto",
+        title: b.title || b.titleBn || b.titleEn,
+        author: b.author,
+        coverImage:
+          rawCover === "/images/books/emon-jodi-hoto.webp" ? "/images/image.png" : rawCover,
+        description: b.description || b.descriptionBn || b.descriptionEn || "",
+        publisher: b.publisher,
+        year: b.year ? String(b.year) : "",
+        category: b.category,
+      });
+    }
 
-    const existingIds = new Set(mapped.map((m) => m.id));
-    const remaining = PORTFOLIO_DATA.designSystems.modules.filter((m) => !existingIds.has(m.id));
-    return [...mapped, ...remaining].slice(0, 3);
-  }, [projectsRes]);
+    return Array.from(map.values());
+  }, [booksRes, bookBundleRes]);
+
+  const hasError =
+    isSiteError ||
+    isCaseStudiesError ||
+    isBlogsError ||
+    isProjectsError ||
+    isBookBundleError ||
+    isBooksError;
+  const isInitialLoading =
+    isSiteLoading ||
+    isCaseStudiesLoading ||
+    isBlogsLoading ||
+    isProjectsLoading ||
+    isBookBundleLoading ||
+    isBooksLoading;
+
+  const handleRetryAll = () => {
+    retrySite();
+    void refetchCaseStudies();
+    void refetchBlogs();
+    void refetchProjects();
+    void refetchBookBundle();
+    void refetchBooks();
+  };
+
+  if (hasError) {
+    return <NetworkErrorView onRetry={handleRetryAll} />;
+  }
+
+  if (isInitialLoading || !site) {
+    return <PageSkeleton />;
+  }
 
   const handleOpenArticle = (data: ModalArticleData) => {
     setSelectedArticle(data);
@@ -148,85 +242,81 @@ export const HomeScreen = () => {
   };
 
   return (
-    <main className="flex min-h-screen w-full justify-center bg-neutral-100 px-0 py-0 sm:px-4 sm:py-6 md:px-8 lg:py-10">
-      {/* Centered Editorial Portfolio Document Frame */}
-      <div className="w-full max-w-[1240px] overflow-hidden border-0 bg-white shadow-2xl sm:border sm:border-black">
-        {/* Top Folio Strip with Live Date */}
-        <TopHeader
-          badge={PORTFOLIO_DATA.meta.badge}
-          issue={PORTFOLIO_DATA.meta.issue}
-          folio={PORTFOLIO_DATA.meta.folio}
-        />
+    <div className="min-h-screen w-full bg-[#F7F7F5] text-[#111]">
+      <TopHeader />
 
-        {/* Hero Identity with 4 Newspaper Broadsheet Story Columns */}
+      <main>
+        {/* Seamless Hero + Anchored 3-Column Dark Discipline Bar */}
         <HeroIdentity
-          name={PORTFOLIO_DATA.identity.name}
-          role={PORTFOLIO_DATA.identity.role}
-          subRole={PORTFOLIO_DATA.identity.subRole}
-          navItems={PORTFOLIO_DATA.identity.navItems}
-          onOpenContactModal={() => setIsContactModalOpen(true)}
+          name={site.identity.name}
+          firstNameLine={site.identity.firstNameLine}
+          lastNameLine={site.identity.lastNameLine}
+          role={site.identity.role}
+          subRole={site.identity.subRole}
+          tagline={site.identity.tagline}
+          portraitUrl={site.identity.portraitUrl || "/images/portrait.png"}
+          primaryCtaLabel={site.advisory.primaryCta}
+          cvUrl={site.meta.cvUrl || "/CV-of-Abdullah-Al-Maksud.pdf"}
+          cvLabel={site.nav.downloadCv}
+          disciplines={site.advisory.pillars}
         />
 
-        {/* Hero Banner with Left Index Rail */}
-        <HeroBanner verticalLabel={PORTFOLIO_DATA.meta.verticalLabel} />
+        {/* Flow Block A: About / Philosophy + Animated Monochrome Mosaic */}
+        <AboutFlowBlock advisory={site.advisory} learnMoreLabel={site.nav.about} />
 
-        {/* Section 1: Case Studies (Enterprise Architecture) */}
+        {/* Flow Block B: Zigzag Asymmetric Case Studies */}
         <EnterpriseArchitectureSection
-          category="01 / CASE STUDIES & ARCHITECTURE"
-          titleLine1={PORTFOLIO_DATA.enterpriseArchitecture.titleLine1}
-          titleLine2={PORTFOLIO_DATA.enterpriseArchitecture.titleLine2}
+          category={site.sections.caseStudiesCategory}
+          title={site.sections.caseStudiesTitle}
+          statement={site.advisory.statement}
+          ctaLabel={site.sections.viewAllWritings}
+          modalCategoryLabel={site.sections.caseStudyModalLabel}
           projects={dynamicCaseStudies}
           onSelectProject={handleOpenArticle}
         />
 
-        {/* Section 2: Engineering Projects (Clean 2x2 Grid) */}
+        {/* Flow Block C: Staggered Split-Card Engineering Projects */}
         <DesignSystemsSection
-          category="02 / ENGINEERING PROJECTS & SYSTEMS"
-          title={PORTFOLIO_DATA.designSystems.title}
+          category={site.sections.projectsCategory}
+          title={site.sections.projectsTitle}
+          modalCategoryLabel={site.sections.projectModalLabel}
           modules={dynamicProjects}
-          onOpenPhysicsSimulator={() => setIsPhysicsModalOpen(true)}
           onSelectModule={handleOpenArticle}
         />
 
-        {/* Section 3: Blogs & Essays (Inverted Dark Block) */}
+        {/* Flow Block D: Single Featured Book Card with Details & Dedicated-Route Blog Cards */}
         <LiteratureEssaysSection
-          category="03 / ESSAYS, MONOGRAPHS & BLOGS"
-          titleLine1={PORTFOLIO_DATA.literatureEssays.titleLine1}
-          titleLine2={PORTFOLIO_DATA.literatureEssays.titleLine2}
-          imageUrl={PORTFOLIO_DATA.literatureEssays.imageUrl}
-          imageAlt={PORTFOLIO_DATA.literatureEssays.imageAlt}
+          category={site.sections.writingsCategory}
+          title={site.sections.writingsTitle}
+          modalCategoryLabel={site.sections.writingModalLabel}
+          bookLabel={site.sections.bookLabel}
+          readBookDetailsLabel={site.sections.viewBookDetails}
+          viewAllWritingsLabel={site.sections.viewAllWritings}
+          books={dynamicBooks}
           items={dynamicBlogs}
-          onSelectItem={handleOpenArticle}
         />
-        {/* Section 4: Full-Width Strategic Advisory Card */}
+
+        {/* Flow Block E: Quiet Dialogue CTA */}
         <StrategicAdvisorySection
-          data={PORTFOLIO_DATA.strategicAdvisory}
+          advisory={site.advisory}
+          email={site.contact.email}
           onOpenBriefModal={() => setIsContactModalOpen(true)}
         />
+      </main>
 
-        {/* Footer */}
-        <Footer
-          copyright={PORTFOLIO_DATA.footer.copyright}
-          rights={PORTFOLIO_DATA.footer.rights}
-          socials={PORTFOLIO_DATA.footer.socials}
-        />
-      </div>
+      <Footer
+        copyright={site.footer.copyright}
+        rights={site.footer.rights}
+        socials={site.footer.socials}
+      />
 
-      {/* Interactive Detail Modal */}
       <ArticleModal
         article={selectedArticle}
         isOpen={isArticleModalOpen}
         onClose={handleCloseArticle}
       />
 
-      {/* Interactive Physics Simulator Modal */}
-      <PhysicsSimulatorModal
-        isOpen={isPhysicsModalOpen}
-        onClose={() => setIsPhysicsModalOpen(false)}
-      />
-
-      {/* Interactive Contact & Resend Email Modal */}
       <ContactEmailModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
-    </main>
+    </div>
   );
 };

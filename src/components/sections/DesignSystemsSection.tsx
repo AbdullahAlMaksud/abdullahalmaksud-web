@@ -1,108 +1,107 @@
+"use client";
+
 import React from "react";
-import { DesignSystemModule } from "@/types/portfolio";
-import { WireframeCanvas } from "@/components/interactive/WireframeCanvas";
-import { ModalArticleData } from "@/components/interactive/ArticleModal";
-import { ArrowUpRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
+import { RevealBlock, ParallaxBox } from "@/components/motion/ScrollReveal";
+import type { DesignSystemModule } from "@/types/portfolio";
+import type { ModalArticleData } from "@/components/interactive/ArticleModal";
 
 interface DesignSystemsSectionProps {
   category: string;
   title: string;
+  modalCategoryLabel?: string;
   modules: DesignSystemModule[];
-  onOpenPhysicsSimulator: () => void;
   onSelectModule: (data: ModalArticleData) => void;
 }
 
 export const DesignSystemsSection: React.FC<DesignSystemsSectionProps> = ({
   category,
   title,
+  modalCategoryLabel = "Engineering Project",
   modules,
-  onOpenPhysicsSimulator,
   onSelectModule,
 }) => {
-  const handleModuleClick = (module: DesignSystemModule) => {
-    if (module.id === "physics-simulator" || module.isInteractive) {
-      onOpenPhysicsSimulator();
-    } else {
-      onSelectModule({
-        tag: module.tag,
-        title: module.title,
-        category: "AESTHETIC PARADIGMS // DESIGN SYSTEM SPECIFICATION",
-        description: module.description,
-        fullContent: module.details?.overview,
-        metrics: module.details?.keyPoints,
-      });
-    }
-  };
+  if (modules.length === 0) return null;
 
   return (
-    <section id="design" className="w-full border-b border-black/10 bg-white">
-      <div className="mx-auto px-4 py-10 sm:px-8 sm:py-16">
-        <div className="grid grid-cols-1 items-stretch gap-8 md:grid-cols-12 lg:gap-12">
-          {/* Col 1: Title, Category & 3D Wireframe Canvas */}
-          <div className="flex h-full flex-col justify-between space-y-6 md:col-span-4">
-            <div className="space-y-3">
-              <span className="font-mono text-[11px] font-medium tracking-[0.25em] text-neutral-600 uppercase">
-                {category}
-              </span>
-              <h2 className="font-sans text-2xl leading-[1.05] font-extrabold tracking-tight text-black uppercase sm:text-3xl lg:text-4xl">
-                {title}
-              </h2>
+    <div id="design" className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
+      <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-12">
+        {/* Right Sticky Title Column (Zigzag balance against surrounding left-titled blocks) */}
+        <div className="lg:sticky lg:top-24 lg:order-2 lg:col-span-4">
+          <RevealBlock className="space-y-3 lg:text-right">
+            <div className="flex items-center gap-3 font-mono text-[11px] tracking-[0.2em] text-neutral-500 uppercase lg:justify-end">
+              <span className="inline-block h-px w-5 bg-neutral-400" />
+              <span>{category}</span>
             </div>
 
-            {/* Interactive 3D Wireframe Cubes */}
-            <div className="flex-1 overflow-hidden border border-black shadow-xs">
-              <WireframeCanvas className="h-full w-full" />
-            </div>
-          </div>
+            <h2 className="font-display text-3xl leading-[1.05] font-bold tracking-tight text-[#111] sm:text-4xl lg:text-5xl">
+              {title}
+            </h2>
 
-          {/* Col 2: Editorial Magazine List / Grid */}
-          <div className="grid grid-cols-1 bg-gray-50 md:col-span-8">
-            {modules.map((item, index) => {
-              const isFirst = index === 0;
+            <div className="hidden h-px w-12 bg-neutral-300 lg:ml-auto lg:block" />
+          </RevealBlock>
+        </div>
 
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => handleModuleClick(item)}
-                  className={`group flex cursor-pointer flex-col justify-start space-y-2.5 p-3 transition-all ${
-                    isFirst ? "bg-white opacity-100" : "opacity-70 hover:bg-white hover:opacity-100"
-                  }`}
+        {/* Left Vertically Stacked Split Cards */}
+        <ParallaxBox offset={10} className="space-y-4 lg:order-1 lg:col-span-8">
+          {modules.map((item, idx) => {
+            const isDarkPlate = idx % 2 === 1;
+
+            return (
+              <RevealBlock key={item.id} delay={idx * 0.08}>
+                <motion.button
+                  type="button"
+                  whileHover={{ x: 6 }}
+                  transition={{ duration: 0.25 }}
+                  onClick={() =>
+                    onSelectModule({
+                      tag: item.tag,
+                      title: item.title,
+                      category: modalCategoryLabel,
+                      description: item.description,
+                      fullContent: item.details?.overview,
+                      metrics: item.details?.keyPoints,
+                    })
+                  }
+                  className="group grid w-full cursor-pointer grid-cols-12 overflow-hidden bg-white text-left shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-shadow hover:shadow-[0_12px_32px_rgba(0,0,0,0.07)]"
                 >
-                  {/* Magazine Tag Header */}
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[11px] font-medium tracking-[0.2em] text-neutral-500 uppercase">
+                  {/* Left Monochrome Typographic Plate */}
+                  <div
+                    className={`col-span-4 flex flex-col justify-between p-5 sm:col-span-3 ${
+                      isDarkPlate ? "bg-[#111] text-white" : "bg-neutral-200/80 text-[#111]"
+                    }`}
+                  >
+                    <span className="font-mono text-[10px] tracking-widest uppercase opacity-60">
+                      0{idx + 1}
+                    </span>
+                    <div className="font-display text-3xl leading-none font-bold opacity-85 sm:text-4xl">
+                      {item.title.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="truncate font-mono text-[9px] tracking-wider uppercase opacity-70">
                       {item.tag}
                     </span>
-                    {item.isInteractive ? (
-                      <span className="font-mono text-[10px] font-semibold tracking-wider text-black">
-                        [ LIVE DEMO ]
-                      </span>
-                    ) : (
-                      <span
-                        className={`font-mono text-[11px] transition-colors ${
-                          isFirst ? "text-black" : "text-neutral-400 group-hover:text-black"
-                        }`}
-                      >
-                        <ArrowUpRight className="text-xs" size={14} />
-                      </span>
-                    )}
                   </div>
 
-                  {/* Bold Headline */}
-                  <h3 className="font-sans text-base font-bold tracking-tight text-black uppercase transition-colors group-hover:text-neutral-700 sm:text-lg">
-                    {item.title}
-                  </h3>
+                  {/* Right Details */}
+                  <div className="col-span-8 flex items-center justify-between gap-4 p-5 sm:col-span-9 sm:p-6">
+                    <div className="space-y-1.5">
+                      <h3 className="font-sans text-lg font-bold tracking-tight text-[#111]">
+                        {item.title}
+                      </h3>
+                      <p className="font-editorial-body line-clamp-2 text-sm leading-relaxed text-neutral-600">
+                        {item.description}
+                      </p>
+                    </div>
 
-                  {/* Editorial Serif Paragraph */}
-                  <p className="font-editorial-body text-[14px] leading-relaxed text-neutral-800 sm:text-[15px]">
-                    {item.description}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-neutral-400 transition-transform group-hover:translate-x-1 group-hover:text-[#111]" />
+                  </div>
+                </motion.button>
+              </RevealBlock>
+            );
+          })}
+        </ParallaxBox>
       </div>
-    </section>
+    </div>
   );
 };

@@ -1,9 +1,6 @@
 import { BookDetailScreen } from "@/screens/BookDetailScreen";
-import { getAllBookSlugs } from "@/data/book-data";
 
-export const generateStaticParams = () => {
-  return getAllBookSlugs().map((slug) => ({ slug }));
-};
+export const dynamic = "force-dynamic";
 
 const Page = async ({ params }: { params: Promise<{ slug: string }> }) => {
   const { slug } = await params;

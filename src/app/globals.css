@@ -89,6 +89,9 @@
   --font-mono:
     var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
+  --font-display:
+    var(--font-playfair), var(--font-purno), "Purno", Georgia, Cambria, "Times New Roman", Times,
+    serif;
 }
 
 body {
@@ -96,6 +99,10 @@ body {
 }
 
 /* Editorial Print & Monograph Utilities */
+.font-display {
+  font-family: var(--font-playfair), var(--font-purno), "Purno", Georgia, serif;
+}
+
 .font-purno {
   font-family: var(--font-purno), "Purno", sans-serif;
 }

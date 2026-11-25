@@ -11,6 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { useSite } from "@/contexts/SiteContext";
 
 export interface ModalArticleData {
   tag: string;
@@ -31,12 +32,13 @@ interface ArticleModalProps {
 }
 
 export const ArticleModal: React.FC<ArticleModalProps> = ({ article, isOpen, onClose }) => {
+  const { site } = useSite();
   if (!article) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto border-black bg-white p-6 sm:p-8">
-        <DialogHeader className="border-b border-black/10 pb-4">
+      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto border-neutral-300 bg-white p-6 sm:p-8">
+        <DialogHeader className="border-b border-neutral-200 pb-4">
           <div className="mb-1 flex items-center space-x-2">
             <Badge variant="outline">{article.tag}</Badge>
             {article.readTime && (
@@ -49,7 +51,7 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, isOpen, onC
             {article.title}
           </DialogTitle>
           <DialogDescription className="font-mono text-xs text-neutral-500">
-            {article.category || "ARCHITECTURAL BRIEF & SPECIFICATION"}
+            {article.category || ""}
           </DialogDescription>
         </DialogHeader>
 
@@ -63,7 +65,7 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, isOpen, onC
           {article.techStack && article.techStack.length > 0 && (
             <div className="space-y-2">
               <div className="font-mono text-[10px] tracking-widest text-neutral-500 uppercase">
-                ENGINEERING STACK & PROTOCOLS
+                {site?.ui?.stackLabel || "Tech Stack"}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {article.techStack.map((tech, idx) => (
@@ -82,7 +84,7 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, isOpen, onC
           {article.metrics && article.metrics.length > 0 && (
             <div className="space-y-2">
               <div className="font-mono text-[10px] tracking-widest text-neutral-500 uppercase">
-                KEY ARCHITECTURAL METRICS
+                {site?.ui?.metricsLabel || "Key Highlights"}
               </div>
               <ul className="space-y-1.5 font-mono text-xs text-neutral-700">
                 {article.metrics.map((metric, idx) => (

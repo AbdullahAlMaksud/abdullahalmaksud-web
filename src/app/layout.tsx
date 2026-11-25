@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Inter, Newsreader, JetBrains_Mono } from "next/font/google";
 import { LenisProvider } from "@/components/providers/LenisProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { SiteProvider } from "@/contexts/SiteContext";
 import "./globals.css";
 
 const purno = localFont({
@@ -32,26 +32,62 @@ const purno = localFont({
   display: "swap",
 });
 
-const inter = Inter({
+const inter = localFont({
+  src: [
+    {
+      path: "../../public/font/Inter-Variable.woff2",
+      weight: "300 900",
+      style: "normal",
+    },
+  ],
   variable: "--font-sans",
-  subsets: ["latin"],
   display: "swap",
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
 });
 
-const newsreader = Newsreader({
+const newsreader = localFont({
+  src: [
+    {
+      path: "../../public/font/Newsreader-Variable.woff2",
+      weight: "300 700",
+      style: "normal",
+    },
+    {
+      path: "../../public/font/Newsreader-Italic-Variable.woff2",
+      weight: "300 700",
+      style: "italic",
+    },
+  ],
   variable: "--font-serif",
-  subsets: ["latin"],
   display: "swap",
-  style: ["normal", "italic"],
-  weight: ["300", "400", "500", "600"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = localFont({
+  src: [
+    {
+      path: "../../public/font/JetBrainsMono-Variable.woff2",
+      weight: "300 700",
+      style: "normal",
+    },
+  ],
   variable: "--font-mono",
-  subsets: ["latin"],
   display: "swap",
-  weight: ["300", "400", "500", "600"],
+});
+
+const playfairDisplay = localFont({
+  src: [
+    {
+      path: "../../public/font/PlayfairDisplay-Variable.woff2",
+      weight: "500 800",
+      style: "normal",
+    },
+    {
+      path: "../../public/font/PlayfairDisplay-Italic-Variable.woff2",
+      weight: "500 800",
+      style: "italic",
+    },
+  ],
+  variable: "--font-playfair",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -85,11 +121,13 @@ const RootLayout = ({
   return (
     <html
       lang="en"
-      className={`${purno.variable} ${inter.variable} ${newsreader.variable} ${jetbrainsMono.variable} scroll-smooth antialiased`}
+      className={`${purno.variable} ${inter.variable} ${newsreader.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} scroll-smooth antialiased`}
     >
       <body className="min-h-screen bg-white font-sans text-black selection:bg-black selection:text-white">
         <LenisProvider>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            <SiteProvider>{children}</SiteProvider>
+          </QueryProvider>
         </LenisProvider>
       </body>
     </html>

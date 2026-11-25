@@ -1,6 +1,7 @@
+import axios from "axios";
 import { apiClient, safeGet, ApiResponse, PaginatedApiResponse } from "./client";
 import { BlogPost } from "@/types/blog";
-import { BLOG_POSTS } from "@/data/blog-data";
+import type { ContentPayload } from "@/types/block";
 
 export interface ApiBlog {
   _id?: string;
@@ -8,12 +9,14 @@ export interface ApiBlog {
   title: string;
   slug: string;
   excerpt: string;
-  content: string;
+  content: ContentPayload;
   coverImage?: string;
   category: string;
   tags: string[];
-  readTime: string;
-  type: "essay" | "monograph" | "paper" | "article";
+  readTime?: string;
+  readingTime?: string;
+  publishedAt?: string;
+  type?: "essay" | "monograph" | "paper" | "article" | string;
   featured: boolean;
   isPublished: boolean;
   createdAt: string;
@@ -45,7 +48,7 @@ export async function fetchBlogs(
   if (params.published !== undefined) {
     queryParams.set("published", String(params.published));
   } else {
-    queryParams.set("published", "true"); // default to published on web
+    queryParams.set("published", "true");
   }
   if (params.includeContent) queryParams.set("includeContent", "true");
 
@@ -56,11 +59,32 @@ export async function fetchBlogs(
   return res.data;
 }
 
+export type FetchBlogSlugResult =
+  { status: "ok"; blog: ApiBlog } | { status: "not_found" } | { status: "error" };
+
 /**
- * Fetch a single blog post by its slug.
+ * Fetch a single blog post by slug, distinguishing 404 vs network/server error.
+ */
+export async function fetchBlogBySlugStrict(slug: string): Promise<FetchBlogSlugResult> {
+  try {
+    const res = await apiClient.get<ApiResponse<ApiBlog>>(`/api/blogs/${encodeURIComponent(slug)}`);
+    if (!res.data?.data) {
+      return { status: "not_found" };
+    }
+    return { status: "ok", blog: res.data.data };
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.status === 404) {
+      return { status: "not_found" };
+    }
+    return { status: "error" };
+  }
+}
+
+/**
+ * Fetch a single blog post by its slug (returns null on error/404).
  */
 export async function fetchBlogBySlug(slug: string): Promise<ApiBlog | null> {
-  const res = await safeGet<ApiResponse<ApiBlog>>(`/api/blogs/${slug}`);
+  const res = await safeGet<ApiResponse<ApiBlog>>(`/api/blogs/${encodeURIComponent(slug)}`);
   return res?.data || null;
 }
 
@@ -78,10 +102,9 @@ export async function fetchBlogCategories(): Promise<string[]> {
 export function mapApiBlogToBlogPost(blog: ApiBlog): BlogPost {
   let cleanContent = "";
 
-  // Handle block-by-block array structure from Lexical editor
   if (Array.isArray(blog.content)) {
     cleanContent = blog.content
-      .map((block: any) => {
+      .map((block: Record<string, any>) => {
         if (!block) return "";
         if (block.data?.markdown) return block.data.markdown;
         switch (block.type) {
@@ -111,12 +134,10 @@ export function mapApiBlogToBlogPost(blog: ApiBlog): BlogPost {
       .join("\n\n");
   } else if (typeof blog.content === "string") {
     cleanContent = blog.content;
-    // If content is Lexical JSON, extract plain text/markdown or return as string
     if (cleanContent.startsWith("{") && cleanContent.includes('"root"')) {
       try {
         const parsed = JSON.parse(cleanContent);
-        // Simple extractor from lexical root nodes
-        const extractText = (node: any): string => {
+        const extractText = (node: Record<string, any>): string => {
           if (!node) return "";
           if (node.text) return node.text;
           if (node.children && Array.isArray(node.children)) {
@@ -126,7 +147,7 @@ export function mapApiBlogToBlogPost(blog: ApiBlog): BlogPost {
         };
         cleanContent = extractText(parsed.root);
       } catch {
-        // keep original string if parse fails
+        // Keep original string if parse fails
       }
     }
   }
@@ -140,38 +161,27 @@ export function mapApiBlogToBlogPost(blog: ApiBlog): BlogPost {
     paper: "Publication",
     publication: "Publication",
   };
-  const mappedType = typeMap[blog.type?.toLowerCase()] || "Essay";
+  const mappedType = (blog.type && typeMap[blog.type.toLowerCase()]) || "Essay";
+
+  const rawDate = blog.publishedAt || blog.createdAt;
+  const parsedDate = new Date(rawDate);
+  const formattedDate = Number.isNaN(parsedDate.getTime())
+    ? rawDate
+    : parsedDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+      });
 
   return {
     slug: blog.slug,
     title: blog.title,
     category: blog.category || "ENGINEERING",
     excerpt: blog.excerpt,
-    date: new Date(blog.createdAt).toLocaleDateString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-    }),
-    readTime: blog.readTime || "5 MIN READ",
-    tag: tag.startsWith("0") ? tag : `MONOGRAPH // ${tag}`,
+    date: formattedDate,
+    readTime: blog.readTime || blog.readingTime || "5 MIN READ",
+    tag: tag.startsWith("0") ? tag : `${tag}`,
     type: mappedType,
     content: cleanContent,
   };
-}
-
-/**
- * Merges API blogs with static fallback data.
- * If backend has live blogs, uses them; if not or empty, uses the static catalog.
- */
-export function mergeBlogsWithStatic(apiBlogs: ApiBlog[]): BlogPost[] {
-  if (!apiBlogs || apiBlogs.length === 0) {
-    return BLOG_POSTS;
-  }
-
-  const mappedApi = apiBlogs.map(mapApiBlogToBlogPost);
-  // Avoid duplicates by slug
-  const apiSlugs = new Set(mappedApi.map((b) => b.slug));
-  const remainingStatic = BLOG_POSTS.filter((b) => !apiSlugs.has(b.slug));
-
-  return [...mappedApi, ...remainingStatic];
 }

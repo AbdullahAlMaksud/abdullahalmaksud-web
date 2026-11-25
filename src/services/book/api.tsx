@@ -1,3 +1,4 @@
+import axios from "axios";
 import { axiosClient, ApiResponse } from "../axios-client";
 import type { BookPublication } from "@/types/book";
 
@@ -49,9 +50,16 @@ export type BookPayload = Partial<BookPublication> & {
 /**
  * Fetch the featured book bundle
  */
-export async function getBookBundle(): Promise<ApiResponse<BookBundleData>> {
-  const res = await axiosClient.get<ApiResponse<BookBundleData>>("/api/v1/books");
-  return res.data;
+export async function getBookBundle(): Promise<ApiResponse<BookBundleData | null>> {
+  try {
+    const res = await axiosClient.get<ApiResponse<BookBundleData>>("/api/v1/books");
+    return res.data;
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.status === 404) {
+      return { success: true, data: null };
+    }
+    throw err;
+  }
 }
 
 /**

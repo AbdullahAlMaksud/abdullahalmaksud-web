@@ -1,133 +1,150 @@
 "use client";
 
 import React, { useState } from "react";
-import { StrategicAdvisory } from "@/types/portfolio";
-import { Button } from "@/components/ui/button";
-import { ArrowUpRight, Copy, Check, MessageSquare, Radio } from "lucide-react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { ArrowRight, Check, Copy } from "lucide-react";
+import { RevealBlock, ParallaxBox } from "@/components/motion/ScrollReveal";
+import type { SiteLocaleData } from "@/types/site";
 
 interface StrategicAdvisorySectionProps {
-  data: StrategicAdvisory;
+  advisory: SiteLocaleData["advisory"];
+  email: string;
   onOpenBriefModal?: () => void;
 }
 
+export const AboutFlowBlock: React.FC<{
+  advisory: SiteLocaleData["advisory"];
+  learnMoreLabel: string;
+}> = ({ advisory, learnMoreLabel }) => {
+  const mosaicShades = [
+    "bg-neutral-200/70",
+    "bg-transparent",
+    "bg-neutral-300/60",
+    "bg-neutral-200/40",
+    "bg-neutral-300/80",
+    "bg-neutral-200/50",
+    "bg-transparent",
+    "bg-neutral-200/70",
+    "bg-transparent",
+    "bg-neutral-200/60",
+    "bg-neutral-300/75",
+    "bg-neutral-200/40",
+  ];
+
+  return (
+    <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
+      <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12">
+        {/* Left: Large Display Headline + Learn More */}
+        <RevealBlock className="space-y-5 lg:col-span-5">
+          <div className="flex items-center gap-3 font-mono text-[11px] tracking-[0.2em] text-neutral-500 uppercase">
+            <span className="inline-block h-px w-5 bg-neutral-400" />
+            <span>{advisory.category}</span>
+          </div>
+
+          <h2 className="font-display text-3xl leading-[1.06] font-bold tracking-tight text-[#111] sm:text-4xl lg:text-[42px]">
+            {advisory.headline}
+          </h2>
+
+          <p className="font-editorial-body text-base leading-relaxed text-neutral-700">
+            {advisory.statement}
+          </p>
+
+          <div className="pt-1">
+            <Link
+              href="/about"
+              className="group inline-flex items-center gap-2.5 bg-[#111] px-5 py-3 font-mono text-xs font-medium tracking-wider text-white uppercase transition-colors hover:bg-neutral-800"
+            >
+              <span>{learnMoreLabel}</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
+        </RevealBlock>
+
+        {/* Center: Poetic Short Pillars with Hairline Left Rule */}
+        <RevealBlock
+          delay={0.1}
+          className="space-y-4 border-neutral-300 lg:col-span-4 lg:border-l lg:pl-8"
+        >
+          {advisory.pillars.slice(0, 3).map((pillar) => (
+            <div key={pillar.number} className="space-y-0.5">
+              <div className="font-sans text-sm font-semibold text-[#111]">{pillar.title}</div>
+              <p className="font-editorial-body text-xs leading-relaxed text-neutral-600 sm:text-sm">
+                {pillar.description}
+              </p>
+            </div>
+          ))}
+        </RevealBlock>
+
+        {/* Right: Subtle Animated Monochrome Mosaic Grid */}
+        <ParallaxBox offset={16} className="hidden justify-end lg:col-span-3 lg:flex">
+          <div className="grid w-44 grid-cols-3 gap-1.5" aria-hidden="true">
+            {mosaicShades.map((shade, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0.4, scale: 0.92 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: idx * 0.04 }}
+                className={`aspect-square ${shade}`}
+              />
+            ))}
+          </div>
+        </ParallaxBox>
+      </div>
+    </div>
+  );
+};
+
 export const StrategicAdvisorySection: React.FC<StrategicAdvisorySectionProps> = ({
-  data,
+  advisory,
+  email,
   onOpenBriefModal,
 }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopyEmail = () => {
-    navigator.clipboard.writeText("contact@abdullahalaksud.com");
+    if (!email) return;
+    navigator.clipboard.writeText(email);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <section
-      id="advisory"
-      className="relative w-full overflow-hidden border-b border-black bg-white"
-    >
-      {/* Architectural Technical Dotted Grid Background */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(rgba(0,0,0,0.1)_1.2px,transparent_1.2px)] [background-size:24px_24px]"
-      />
-
-      {/* Large Decorative Quotation Mark in Background Corner */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-0 -right-2 z-0 font-serif text-[180px] leading-none font-black tracking-tighter text-neutral-100 select-none sm:-top-0 sm:right-6 sm:text-[280px] md:text-[340px]"
-      >
-        &ldquo;
-      </div>
-
-      <div className="relative z-10 mx-auto space-y-12 px-4 py-12 sm:space-y-14 sm:px-8 sm:py-16">
-        {/* Magazine Meta Tag Strip (Borderless) */}
-        <div className="flex flex-col items-start justify-between gap-2 font-mono text-[11px] tracking-[0.2em] uppercase sm:flex-row sm:items-center">
-          <div className="flex items-center space-x-2 font-semibold text-neutral-800">
-            <Radio className="h-3 w-3 animate-pulse text-black" />
-            <span>{data.badge}</span>
+    <div id="advisory" className="mx-auto max-w-6xl px-5 pt-8 pb-20 sm:px-8 sm:pb-24">
+      <RevealBlock className="grid grid-cols-1 items-center gap-8 bg-[#111] p-8 text-white sm:p-12 md:grid-cols-12">
+        <div className="space-y-3 md:col-span-7">
+          <div className="font-mono text-[10px] tracking-[0.25em] text-neutral-400 uppercase">
+            {advisory.ctaEyebrow} · {advisory.availability}
           </div>
-          <div className="text-[10px] tracking-widest text-neutral-500">{data.availability}</div>
+          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            {advisory.ctaTitle}
+          </h2>
+          <p className="font-editorial-body max-w-lg text-sm leading-relaxed text-neutral-300 sm:text-base">
+            {advisory.statement}
+          </p>
         </div>
 
-        {/* Title & Statement Block */}
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12 lg:gap-12">
-          <div className="space-y-3 lg:col-span-5">
-            <span className="font-mono text-[11px] font-medium tracking-[0.25em] text-neutral-600 uppercase">
-              {data.category}
-            </span>
-            <h2 className="font-sans text-2xl leading-[1.05] font-extrabold tracking-tight text-black uppercase sm:text-3xl lg:text-4xl">
-              {data.headline}
-            </h2>
-          </div>
+        <div className="flex flex-wrap items-center gap-3 md:col-span-5 md:justify-end">
+          <button
+            type="button"
+            onClick={onOpenBriefModal}
+            className="group inline-flex cursor-pointer items-center gap-2 bg-white px-5 py-3 font-mono text-xs font-semibold tracking-wider text-[#111] uppercase transition-colors hover:bg-neutral-200"
+          >
+            <span>{advisory.primaryCta}</span>
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+          </button>
 
-          <div className="pt-1 lg:col-span-7">
-            <p className="font-editorial-body text-[15px] leading-relaxed text-neutral-800 sm:text-[17px]">
-              {data.statement}
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={handleCopyEmail}
+            className="inline-flex cursor-pointer items-center gap-2 border border-white/25 px-4 py-3 font-mono text-xs font-medium tracking-wider text-white uppercase transition-colors hover:border-white"
+          >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            <span>{copied ? advisory.emailCopiedCta : advisory.copyEmailCta}</span>
+          </button>
         </div>
-
-        {/* 4 Architectural Pillars - Pure Borderless Magazine Columns */}
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
-          {data.pillars.map((pillar) => (
-            <div key={pillar.number} className="flex flex-col justify-start space-y-3">
-              <div className="font-mono text-xs font-bold text-neutral-400">// {pillar.number}</div>
-              <h3 className="font-sans text-sm font-bold tracking-tight text-black uppercase">
-                {pillar.title}
-              </h3>
-              <p className="font-editorial-body text-xs leading-relaxed text-neutral-700 sm:text-[14px]">
-                {pillar.description}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Action & Engagement Strip (Clean Editorial Monograph Bar) */}
-        <div className="flex flex-col items-start justify-between gap-6 pt-4 md:flex-row md:items-center">
-          <div className="space-y-1">
-            <div className="font-mono text-[10px] tracking-widest text-neutral-500 uppercase">
-              DIRECT ARCHITECTURAL CONSULTATION
-            </div>
-            <div className="font-sans text-base font-bold tracking-tight text-black uppercase sm:text-lg">
-              RESERVE STRATEGIC EVALUATION SESSION
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              variant="default"
-              size="default"
-              onClick={onOpenBriefModal}
-              className="flex cursor-pointer items-center gap-2 font-mono text-xs uppercase"
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              {data.cta.primaryText}
-              <ArrowUpRight className="h-3.5 w-3.5" />
-            </Button>
-
-            <Button
-              variant="outline"
-              size="default"
-              onClick={handleCopyEmail}
-              className="flex cursor-pointer items-center gap-2 font-mono text-xs uppercase"
-            >
-              {copied ? (
-                <>
-                  <Check className="h-3.5 w-3.5 text-black" />
-                  EMAIL COPIED
-                </>
-              ) : (
-                <>
-                  <Copy className="h-3.5 w-3.5" />
-                  COPY EMAIL
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </section>
+      </RevealBlock>
+    </div>
   );
 };
