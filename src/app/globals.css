@@ -1,39 +1,19 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "Purno";
-  src: url("/font/Purno%20Regular.ttf") format("truetype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Purno";
-  src: url("/font/Purno%20Italic.ttf") format("truetype");
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Purno";
-  src: url("/font/Purno%20Bold.ttf") format("truetype");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Purno";
-  src: url("/font/Purno%20Bold-Italic.ttf") format("truetype");
-  font-weight: 700;
-  font-style: italic;
-  font-display: swap;
-}
-
 @layer base {
   :root {
+    --font-active-sans:
+      var(--font-inter), var(--font-purno-face), ui-sans-serif, system-ui, -apple-system,
+      BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-active-serif:
+      var(--font-newsreader), var(--font-purno-face), Georgia, Cambria, "Times New Roman", Times,
+      serif;
+    --font-active-display:
+      var(--font-playfair), var(--font-purno-face), Georgia, Cambria, "Times New Roman", Times,
+      serif;
+    --font-active-mono:
+      var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
     --background: 0 0% 100%;
     --foreground: 0 0% 0%;
     --card: 0 0% 100%;
@@ -79,40 +59,40 @@
   }
 }
 
-@theme {
-  --font-purno: var(--font-purno), "Purno", system-ui, -apple-system, sans-serif;
-  --font-sans:
-    var(--font-purno), "Purno", var(--font-sans), ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-serif:
-    var(--font-purno), "Purno", var(--font-serif), Georgia, Cambria, "Times New Roman", Times, serif;
-  --font-mono:
-    var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
-  --font-display:
-    var(--font-playfair), var(--font-purno), "Purno", Georgia, Cambria, "Times New Roman", Times,
-    serif;
+html[lang="bn"] {
+  --font-active-sans:
+    var(--font-purno-face), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-active-serif: var(--font-purno-face), var(--font-newsreader), Georgia, serif;
+  --font-active-display: var(--font-purno-face), var(--font-playfair), Georgia, serif;
+}
+
+@theme inline {
+  --font-purno: var(--font-purno-face), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-active-sans);
+  --font-serif: var(--font-active-serif);
+  --font-mono: var(--font-active-mono);
+  --font-display: var(--font-active-display);
 }
 
 body {
-  font-family: var(--font-purno), "Purno", var(--font-sans), sans-serif;
+  font-family: var(--font-active-sans);
 }
 
 /* Editorial Print & Monograph Utilities */
 .font-display {
-  font-family: var(--font-playfair), var(--font-purno), "Purno", Georgia, serif;
+  font-family: var(--font-active-display);
 }
 
 .font-purno {
-  font-family: var(--font-purno), "Purno", sans-serif;
+  font-family: var(--font-purno-face), sans-serif;
 }
 
 .font-editorial-body {
-  font-family: var(--font-purno), "Purno", var(--font-serif), serif;
+  font-family: var(--font-active-serif);
 }
 
 .font-editorial-body-dark {
-  font-family: var(--font-purno), "Purno", var(--font-serif), serif;
+  font-family: var(--font-active-serif);
 }
 
 .vertical-lr {
@@ -137,15 +117,17 @@ img {
   image-rendering: -webkit-optimize-contrast;
 }
 
-/* Custom Scrollbar: Black, 2px */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #000000 transparent;
+/* Custom Scrollbar: Thin, Square, Black */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #000000 transparent;
+  }
 }
 
 *::-webkit-scrollbar {
-  width: 2px;
-  height: 2px;
+  width: 3px;
+  height: 3px;
 }
 
 *::-webkit-scrollbar-track {
@@ -155,4 +137,8 @@ img {
 *::-webkit-scrollbar-thumb {
   background-color: #000000;
   border-radius: 0;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }

@@ -28,7 +28,7 @@ const purno = localFont({
       style: "italic",
     },
   ],
-  variable: "--font-purno",
+  variable: "--font-purno-face",
   display: "swap",
 });
 
@@ -40,7 +40,7 @@ const inter = localFont({
       style: "normal",
     },
   ],
-  variable: "--font-sans",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -57,7 +57,7 @@ const newsreader = localFont({
       style: "italic",
     },
   ],
-  variable: "--font-serif",
+  variable: "--font-newsreader",
   display: "swap",
 });
 
@@ -69,7 +69,7 @@ const jetbrainsMono = localFont({
       style: "normal",
     },
   ],
-  variable: "--font-mono",
+  variable: "--font-jetbrains",
   display: "swap",
 });
 
@@ -105,6 +105,13 @@ export const metadata: Metadata = {
     "Portfolio",
   ],
   authors: [{ name: "Abdullah Al Maksud" }],
+  icons: {
+    icon: [
+      { url: "/icons/brand-logo.svg", type: "image/svg+xml" },
+      { url: "/icons/brand-logo.png", type: "image/png" },
+    ],
+    apple: "/icons/brand-logo.png",
+  },
   openGraph: {
     title: "Abdullah Al Maksud — Lead Architect & Consultant",
     description:
@@ -121,6 +128,7 @@ const RootLayout = ({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${purno.variable} ${inter.variable} ${newsreader.variable} ${jetbrainsMono.variable} ${playfairDisplay.variable} scroll-smooth antialiased`}
     >
       <body className="min-h-screen bg-white font-sans text-black selection:bg-black selection:text-white">

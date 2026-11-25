@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Code2, Palette, PenTool } from "lucide-react";
 import { ParallaxBox } from "@/components/motion/ScrollReveal";
+import { resolveAssetUrl } from "@/lib/asset-url";
 import type { SiteAdvisoryPillar } from "@/types/site";
 
 interface HeroIdentityProps {
@@ -109,7 +110,7 @@ export const HeroIdentity: React.FC<HeroIdentityProps> = ({
               className="relative z-10 h-[360px] w-full max-w-[420px] sm:h-[430px] lg:h-[470px]"
             >
               <Image
-                src={portraitUrl}
+                src={resolveAssetUrl(portraitUrl)}
                 alt={name}
                 fill
                 priority

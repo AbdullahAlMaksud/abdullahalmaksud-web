@@ -6,6 +6,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpen } from "lucide-react";
 import { RevealBlock, ParallaxBox } from "@/components/motion/ScrollReveal";
+import { resolveAssetUrl } from "@/lib/asset-url";
 import type { EssayPublication } from "@/types/portfolio";
 
 export interface BookCoverItem {
@@ -39,7 +40,7 @@ const FeaturedBookDetailCard: React.FC<{
   const initialSrc =
     book.coverImage === "/images/books/emon-jodi-hoto.webp" && book.slug === "emon-jodi-hoto"
       ? "/images/image.png"
-      : book.coverImage || "";
+      : resolveAssetUrl(book.coverImage);
 
   const [imgSrc, setImgSrc] = useState<string>(initialSrc);
   const [failed, setFailed] = useState<boolean>(!initialSrc);
@@ -50,56 +51,40 @@ const FeaturedBookDetailCard: React.FC<{
     <RevealBlock>
       <Link
         href={`/books/${encodeURIComponent(book.slug)}`}
-        className="group grid grid-cols-1 overflow-hidden bg-white shadow-[0_8px_32px_rgba(0,0,0,0.05)] transition-shadow duration-300 hover:shadow-[0_16px_44px_rgba(0,0,0,0.09)] sm:grid-cols-12"
+        className="group flex flex-col overflow-hidden bg-white shadow-[0_8px_32px_rgba(0,0,0,0.05)] transition-shadow duration-300 hover:shadow-[0_16px_44px_rgba(0,0,0,0.09)] sm:flex-row sm:items-stretch"
       >
-        {/* Left: Physical Hardcover Book Frame */}
-        <div className="flex items-center justify-center bg-[#F1EFEA] p-7 sm:col-span-5 sm:p-8">
-          <div className="relative aspect-[2/3] w-40 overflow-hidden rounded-l-[3px] rounded-r-[9px] border-r-[4px] border-b-[4px] border-[#d8d3c9] bg-[#141414] shadow-[0_12px_28px_rgba(0,0,0,0.16)] transition-transform duration-500 group-hover:-translate-y-1 sm:w-44">
-            {!failed && imgSrc ? (
-              <Image
-                src={imgSrc}
-                alt={book.title}
-                fill
-                sizes="(max-width: 640px) 160px, 176px"
-                onError={() => {
-                  if (imgSrc !== "/images/image.png" && book.slug === "emon-jodi-hoto") {
-                    setImgSrc("/images/image.png");
-                  } else {
-                    setFailed(true);
-                  }
-                }}
-                className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-              />
-            ) : (
-              <div className="flex h-full w-full flex-col justify-between bg-[#141414] p-4 pl-6 text-white">
-                <BookOpen className="h-5 w-5 text-neutral-400" />
-                <div className="space-y-1">
-                  <div className="font-display text-base leading-snug font-bold">{book.title}</div>
-                  {book.author && (
-                    <div className="font-mono text-[10px] text-neutral-400">{book.author}</div>
-                  )}
-                </div>
+        {/* Left: Flush Book Cover fitted inside Card */}
+        <div className="relative aspect-[2/3] w-full shrink-0 overflow-hidden bg-[#141414] sm:w-[220px] md:w-[240px]">
+          {!failed && imgSrc ? (
+            <Image
+              src={imgSrc}
+              alt={book.title}
+              fill
+              sizes="(max-width: 640px) 100vw, 240px"
+              onError={() => {
+                if (imgSrc !== "/images/image.png" && book.slug === "emon-jodi-hoto") {
+                  setImgSrc("/images/image.png");
+                } else {
+                  setFailed(true);
+                }
+              }}
+              className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+          ) : (
+            <div className="flex h-full w-full flex-col justify-between bg-[#141414] p-6 text-white">
+              <BookOpen className="h-5 w-5 text-neutral-400" />
+              <div className="space-y-1">
+                <div className="font-display text-lg leading-snug font-bold">{book.title}</div>
+                {book.author && (
+                  <div className="font-mono text-[10px] text-neutral-400">{book.author}</div>
+                )}
               </div>
-            )}
-
-            {/* Hardcover spine crease & bevel */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 left-0 w-3.5 bg-gradient-to-r from-black/40 via-white/15 to-transparent"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 left-2.5 w-px bg-black/25 shadow-[1px_0_0_rgba(255,255,255,0.18)]"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 rounded-l-[3px] rounded-r-[9px] ring-1 ring-white/15 ring-inset"
-            />
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Right: Book Details */}
-        <div className="flex flex-col justify-between space-y-6 p-6 sm:col-span-7 sm:p-8">
+        <div className="flex flex-1 flex-col justify-between space-y-6 p-6 sm:p-8">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] tracking-[0.18em] text-neutral-400 uppercase">
               <span>{bookLabel}</span>

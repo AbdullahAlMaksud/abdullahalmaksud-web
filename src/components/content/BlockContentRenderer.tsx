@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import { Check, Copy } from "lucide-react";
+import { resolveAssetUrl } from "@/lib/asset-url";
 import type { ContentBlock, ContentPayload } from "@/types/block";
 
 interface BlockContentRendererProps {
@@ -130,25 +130,62 @@ function RenderBlock({ block }: { block: ContentBlock }) {
     case "divider":
       return <hr className="my-8 border-t border-black/10" />;
 
-    case "image":
-      if (!data.url) return null;
+    case "image": {
+      const resolvedUrl = resolveAssetUrl(data.url);
+      if (!resolvedUrl) return null;
       return (
         <figure className="my-8">
-          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg border border-black/10 bg-black/5">
-            <Image
-              src={data.url}
+          <div className="overflow-hidden rounded-lg border border-black/10 bg-black/[0.02]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={resolvedUrl}
               alt={data.alt || data.caption || "Content image"}
-              fill
-              className="object-cover"
+              className="mx-auto max-h-[640px] w-full object-contain"
+              loading="lazy"
             />
           </div>
           {data.caption && (
-            <figcaption className="mt-2 text-center font-sans text-sm text-black/60 italic">
+            <figcaption className="mt-2.5 text-center font-sans text-sm text-black/60 italic">
               {data.caption}
             </figcaption>
           )}
         </figure>
       );
+    }
+
+    case "table": {
+      const headers = data.headers || [];
+      const rows = data.rows || [];
+      if (headers.length === 0 && rows.length === 0) return null;
+      return (
+        <div className="my-6 overflow-x-auto rounded-lg border border-black/15">
+          <table className="w-full border-collapse text-left font-sans text-sm">
+            {headers.length > 0 && (
+              <thead className="border-b border-black/15 bg-black/[0.03]">
+                <tr>
+                  {headers.map((header, idx) => (
+                    <th key={idx} className="px-4 py-2.5 font-semibold text-black">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            )}
+            <tbody className="divide-y divide-black/10">
+              {rows.map((row, rowIdx) => (
+                <tr key={rowIdx} className="hover:bg-black/[0.015]">
+                  {(headers.length > 0 ? headers : row).map((_, colIdx) => (
+                    <td key={colIdx} className="px-4 py-2.5 text-black/85">
+                      {row[colIdx] || ""}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
 
     default:
       if (data.text) {
@@ -224,6 +261,16 @@ function parseContentToBlocks(
           data: {
             items,
             listType: child.listType === "number" ? "number" : "bullet",
+          },
+        });
+      } else if (child.type === "image" && child.src) {
+        lexicalBlocks.push({
+          id: `lexical-img-${i}`,
+          type: "image",
+          data: {
+            url: child.src,
+            alt: child.altText || child.alt || "",
+            caption: child.caption || "",
           },
         });
       } else {
@@ -325,6 +372,19 @@ export function BlockContentRenderer({ content, className = "" }: BlockContentRe
               );
             },
             hr: () => <hr className="my-8 border-t border-black/10" />,
+            img: ({ src, alt }) => {
+              const resolvedSrc = typeof src === "string" ? resolveAssetUrl(src) : "";
+              if (!resolvedSrc) return null;
+              return (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={resolvedSrc}
+                  alt={alt || "Content image"}
+                  className="my-6 w-full rounded-lg border border-black/10 object-cover"
+                  loading="lazy"
+                />
+              );
+            },
           }}
         >
           {parsed.rawString}

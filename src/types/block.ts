@@ -1,4 +1,5 @@
-export type BlockType = "paragraph" | "heading" | "quote" | "code" | "list" | "divider" | "image";
+export type BlockType =
+  "paragraph" | "heading" | "quote" | "code" | "list" | "divider" | "image" | "table";
 
 export interface ContentBlock {
   id: string;
@@ -13,6 +14,8 @@ export interface ContentBlock {
     url?: string;
     caption?: string;
     alt?: string;
+    headers?: string[];
+    rows?: string[][];
     markdown?: string;
   };
 }

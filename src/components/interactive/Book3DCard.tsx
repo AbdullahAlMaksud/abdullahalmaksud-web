@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { resolveAssetUrl } from "@/lib/asset-url";
 import {
   RotateCcw,
   Play,
@@ -399,7 +400,7 @@ export const Book3DCard: React.FC<Book3DCardProps> = ({
             }}
           >
             <Image
-              src={imageUrl}
+              src={resolveAssetUrl(imageUrl)}
               alt={imageAlt}
               fill
               sizes="280px"

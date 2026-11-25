@@ -11,6 +11,7 @@ import { PageSkeleton } from "@/components/common/PageSkeleton";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowUpRight, BookOpen } from "lucide-react";
 import { useSite } from "@/contexts/SiteContext";
+import { resolveAssetUrl } from "@/lib/asset-url";
 import { useBookBySlugQuery } from "@/services/book";
 
 interface BookDetailScreenProps {
@@ -108,7 +109,7 @@ export const BookDetailScreen: React.FC<BookDetailScreenProps> = ({ slug }) => {
                     <Image
                       src={
                         book.coverImage && book.coverImage !== "/images/books/emon-jodi-hoto.webp"
-                          ? book.coverImage
+                          ? resolveAssetUrl(book.coverImage)
                           : "/images/image.png"
                       }
                       alt={book.title}

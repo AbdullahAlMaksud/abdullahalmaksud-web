@@ -100,38 +100,17 @@ export async function fetchBlogCategories(): Promise<string[]> {
  * Convert backend ApiBlog to frontend BlogPost model
  */
 export function mapApiBlogToBlogPost(blog: ApiBlog): BlogPost {
-  let cleanContent = "";
+  let cleanContent: ContentPayload = "";
 
   if (Array.isArray(blog.content)) {
-    cleanContent = blog.content
-      .map((block: Record<string, any>) => {
-        if (!block) return "";
-        if (block.data?.markdown) return block.data.markdown;
-        switch (block.type) {
-          case "heading": {
-            const level = block.data?.level || 2;
-            return `${"#".repeat(level)} ${block.data?.text || ""}`;
-          }
-          case "quote":
-            return `> ${block.data?.text || ""}`;
-          case "code":
-            return `\`\`\`${block.data?.language || "typescript"}\n${block.data?.code || block.data?.text || ""}\n\`\`\``;
-          case "list": {
-            const isNum = block.data?.listType === "number";
-            const items = block.data?.items || [];
-            return items
-              .map((it: string, i: number) => (isNum ? `${i + 1}. ${it}` : `- ${it}`))
-              .join("\n");
-          }
-          case "divider":
-            return "---";
-          case "paragraph":
-          default:
-            return block.data?.text || "";
-        }
-      })
-      .filter(Boolean)
-      .join("\n\n");
+    cleanContent = blog.content;
+  } else if (
+    typeof blog.content === "object" &&
+    blog.content !== null &&
+    "blocks" in blog.content &&
+    Array.isArray((blog.content as { blocks?: unknown[] }).blocks)
+  ) {
+    cleanContent = blog.content;
   } else if (typeof blog.content === "string") {
     cleanContent = blog.content;
     if (cleanContent.startsWith("{") && cleanContent.includes('"root"')) {
