@@ -55,7 +55,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (typeof document !== "undefined") {
       document.documentElement.lang = locale;
-      if (site?.meta?.defaultTitle) {
+      if (window.location.pathname === "/" && site?.meta?.defaultTitle) {
         document.title = site.meta.defaultTitle;
       }
     }
